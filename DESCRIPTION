@@ -1,0 +1,18 @@
+Package: xoshiro
+Title: Parallel Random Numbers
+Version: 0.0.1
+Authors@R: c(person("Rich", "FitzJohn", role = c("aut", "cre"),
+                    email = "rich.fitzjohn@gmail.com"),
+             person("John", "Lees", role = "aut"),
+             person("Imperial College of Science, Technology and Medicine",
+                    role = "cph"))
+Description: Implements a parallel random number generator and distributions
+    that use them.
+License: MIT + file LICENSE
+Encoding: UTF-8
+LazyData: true
+Language: en-GB
+URL: https://github.com/mrc-ide/xoshiro
+BugReports: https://github.com/mrc-ide/xoshiro/issues
+Suggests:
+    testthat
