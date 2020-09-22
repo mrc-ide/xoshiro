@@ -1,0 +1,152 @@
+#include <cstring>
+#include <cpp11/external_pointer.hpp>
+#include <cpp11/raws.hpp>
+#include <cpp11/doubles.hpp>
+#include <cpp11/integers.hpp>
+
+#include <xoshiro/rng.hpp>
+#include <xoshiro/cpp11.hpp>
+
+typedef xoshiro::prng<double> xoshiro_rng_t;
+typedef cpp11::external_pointer<xoshiro_rng_t> xoshiro_rng_ptr_t;
+
+[[cpp11::register]]
+SEXP xoshiro_rng_alloc(cpp11::sexp r_seed, int n_generators) {
+  std::vector<uint64_t> seed = xoshiro::cpp11::as_rng_seed<double>(r_seed);
+  xoshiro_rng_t *rng = new xoshiro_rng_t(n_generators, seed);
+  return cpp11::external_pointer<xoshiro_rng_t>(rng);
+}
+
+[[cpp11::register]]
+int xoshiro_rng_size(SEXP ptr) {
+  xoshiro_rng_t *rng = cpp11::as_cpp<xoshiro_rng_ptr_t>(ptr).get();
+  return static_cast<int>(rng->size());
+}
+
+[[cpp11::register]]
+void xoshiro_rng_jump(SEXP ptr) {
+  xoshiro_rng_t *rng = cpp11::as_cpp<xoshiro_rng_ptr_t>(ptr).get();
+  rng->jump();
+}
+
+[[cpp11::register]]
+void xoshiro_rng_long_jump(SEXP ptr) {
+  xoshiro_rng_t *rng = cpp11::as_cpp<xoshiro_rng_ptr_t>(ptr).get();
+  rng->long_jump();
+}
+
+[[cpp11::register]]
+cpp11::writable::doubles xoshiro_rng_unif_rand(SEXP ptr, int n) {
+  xoshiro_rng_t *rng = cpp11::as_cpp<xoshiro_rng_ptr_t>(ptr).get();
+  const size_t n_generators = rng->size();
+
+  cpp11::writable::doubles ret = cpp11::writable::doubles(n);
+  double * y = REAL(ret);
+
+  for (size_t i = 0; i < (size_t)n; ++i) {
+    y[i] = xoshiro::unif_rand(rng->state(i % n_generators));
+  }
+
+  return ret;
+}
+
+// NOTE: no special treatment (yet) for this
+[[cpp11::register]]
+cpp11::writable::doubles xoshiro_rng_norm_rand(SEXP ptr, int n) {
+  xoshiro_rng_t *rng = cpp11::as_cpp<xoshiro_rng_ptr_t>(ptr).get();
+  const size_t n_generators = rng->size();
+
+  cpp11::writable::doubles ret = cpp11::writable::doubles(n);
+  double * y = REAL(ret);
+
+  for (size_t i = 0; i < (size_t)n; ++i) {
+    y[i] = xoshiro::distr::rnorm(rng->state(i % n_generators), 0, 1);
+  }
+
+  return ret;
+}
+
+[[cpp11::register]]
+cpp11::writable::doubles xoshiro_rng_runif(SEXP ptr, int n,
+                                         cpp11::doubles r_min,
+                                         cpp11::doubles r_max) {
+  xoshiro_rng_t *rng = cpp11::as_cpp<xoshiro_rng_ptr_t>(ptr).get();
+  const double * min = REAL(r_min);
+  const double * max = REAL(r_max);
+  const size_t n_generators = rng->size();
+
+  cpp11::writable::doubles ret = cpp11::writable::doubles(n);
+  double * y = REAL(ret);
+
+  for (size_t i = 0; i < (size_t)n; ++i) {
+    y[i] = xoshiro::distr::runif(rng->state(i % n_generators), min[i], max[i]);
+  }
+
+  return ret;
+}
+
+[[cpp11::register]]
+cpp11::writable::doubles xoshiro_rng_rnorm(SEXP ptr, int n,
+                                        cpp11::doubles r_mean,
+                                        cpp11::doubles r_sd) {
+  xoshiro_rng_t *rng = cpp11::as_cpp<xoshiro_rng_ptr_t>(ptr).get();
+  const double * mean = REAL(r_mean);
+  const double * sd = REAL(r_sd);
+  const size_t n_generators = rng->size();
+
+  cpp11::writable::doubles ret = cpp11::writable::doubles(n);
+  double * y = REAL(ret);
+
+  for (size_t i = 0; i < (size_t)n; ++i) {
+    y[i] = xoshiro::distr::rnorm(rng->state(i % n_generators), mean[i], sd[i]);
+  }
+
+  return ret;
+}
+
+[[cpp11::register]]
+cpp11::writable::integers xoshiro_rng_rbinom(SEXP ptr, int n,
+                                          cpp11::integers r_size,
+                                          cpp11::doubles r_prob) {
+  xoshiro_rng_t *rng = cpp11::as_cpp<xoshiro_rng_ptr_t>(ptr).get();
+  const int * size = INTEGER(r_size);
+  const double * prob = REAL(r_prob);
+
+  cpp11::writable::integers ret = cpp11::writable::integers(n);
+  int * y = INTEGER(ret);
+
+  const size_t n_generators = rng->size();
+  for (size_t i = 0; i < (size_t)n; ++i) {
+    y[i] = xoshiro::distr::rbinom(rng->state(i % n_generators),
+                                  size[i], prob[i]);
+  }
+
+  return ret;
+}
+
+[[cpp11::register]]
+cpp11::writable::integers xoshiro_rng_rpois(SEXP ptr, int n,
+                                         cpp11::doubles r_lambda) {
+  xoshiro_rng_t *rng = cpp11::as_cpp<xoshiro_rng_ptr_t>(ptr).get();
+  const double * lambda = REAL(r_lambda);
+  const size_t n_generators = rng->size();
+
+  cpp11::writable::integers ret = cpp11::writable::integers(n);
+  int * y = INTEGER(ret);
+
+  for (size_t i = 0; i < (size_t)n; ++i) {
+    y[i] = xoshiro::distr::rpois(rng->state(i % n_generators), lambda[i]);
+  }
+
+  return ret;
+}
+
+[[cpp11::register]]
+cpp11::writable::raws xoshiro_rng_state(SEXP ptr) {
+  xoshiro_rng_t *rng = cpp11::as_cpp<xoshiro_rng_ptr_t>(ptr).get();
+  auto state = rng->export_state();
+  size_t len = sizeof(uint64_t) * state.size();
+  cpp11::writable::raws ret(len);
+  std::memcpy(RAW(ret), state.data(), len);
+  return ret;
+}

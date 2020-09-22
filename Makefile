@@ -37,9 +37,12 @@ pkgdown:
 website: pkgdown
 	./scripts/update_web.sh
 
-vignettes: vignettes/traduire.Rmd
+vignettes: vignettes/xoshiro.Rmd
 	${RSCRIPT} -e 'tools::buildVignettes(dir = ".")'
 	mkdir -p inst/doc
 	cp vignettes/*.html vignettes/*.Rmd inst/doc
+
+clean:
+	rm -f src/*.o src/*.dll src/*.so
 
 .PHONY: all test document install vignettes
