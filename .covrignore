@@ -1,0 +1,3 @@
+# Ignore generated files
+R/cpp11.R
+src/cpp11.cpp
